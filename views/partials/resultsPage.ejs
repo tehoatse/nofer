@@ -1,0 +1,15 @@
+page <%= page %>
+total pages <%= totalPages %>
+
+<% results.forEach(result => {%>
+  <div style="padding: 10px">
+    <% if (result.title) { %>
+      <a href=
+    <%= result.title %> <br>
+    <% } else { %>
+    <%= result.name %> 
+    <% } %>
+    <%= result.release_date %> <br>
+    <%= result.overview %> <br>
+  </div>
+<% }); %>

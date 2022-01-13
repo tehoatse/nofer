@@ -8,47 +8,90 @@ const app = express();
 const ejs = require ("ejs");
 const axios = require("axios");
 
+
 const apiKey = process.env.API_KEY;
 
 app.use(express.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
 
-let TMDBQueryresult = {
-  total_results: 0
-};
+// object to hold the options related to the api call in getSearchResults(options);
+let searchOptions;
+// object to hold useful values from the api call in getSearchResults()
+let pageValues;
 
 app.get("/", (req, res) => {
   res.render('home');
 });
 
-app.get("/", (req, res) => {
-  res.render('results');
+app.post("/", (req, res) => {
+  
+  searchOptions = {
+    enteredQueryString: req.body.searchQuery,
+    page: 1,
+    mediaType: req.body.mediaType,
+    queryType: req.body.query_type
+  };
+
+  if(!searchOptions.enteredQueryString){
+    res.redirect("/error");
+  }
+  else{
+    getResultsPage(searchOptions).then(
+      searchResults => {
+        pageValues = getPageValues(searchResults);
+        res.redirect("/results");
+    });
+  }  
 });
 
 app.get("/results", (req, res) => {
-  res.render('results')
+  res.render('results', pageValues)
 });
 
-app.post("/", (req, res) => {
-  searchQuery = req.body.searchQuery;
-  console.log(searchQuery);
+app.get("/results/:page", (req, res) => {
 
-  let searchString = 'https://api.themoviedb.org/3/search/movie?api_key=';
-  searchString += apiKey;
-  searchString += '&language=en-US&include_adult=false';
-  searchString += '&query=' + searchQuery;
-
-  axios.get(searchString).then(resp => {
-    TMDBQueryresult = resp.data;    
-    console.log(TMDBQueryresult.total_results);
-  });
-
-  res.redirect("/results");
+  searchOptions.page = req.params.page;
+  getResultsPage(searchOptions).then(
+    searchResults => {
+      pageValues = getPageValues(searchResults);
+      res.render('results', pageValues);
+    }
+  ); 
 });
+
+app.get("/error", (req,res) => {
+  res.render('error');
+});
+
+app.get("media/:type/:id"), (req, res) => {
+
+}
 
 app.listen(3000, () => {
-    console.log('server is running on port 3000')
-  });
+  console.log('server is running on port 3000')
+});
+
+const getResultsPage = async (options) => {
+
+  let searchString = 'https://api.themoviedb.org/3/search/' + options.mediaType
+  searchString += '?api_key=' + apiKey
+  searchString += '&language=en-US&include_adult=false';
+  searchString += '&page=' + options.page;
+  searchString += '&query=';
+  searchString += options.enteredQueryString;
+
+  let result = await axios.get(searchString);
+  return result.data;
+}
+
+const getPageValues = (data) => {
+  console.log(data);
+  return {
+    page: data.page,  // 'page' here means a page of data to be rendered
+    totalPages: data.total_pages,
+    results: data.results
+  }
+}
 
   // adult: false,
   // backdrop_path: '/9rm4TX4m6RHa5DbXDuRlVoawFU9.jpg',

@@ -1,5 +1,12 @@
 <form method="post" action="/">
-  search
+  search for
+  <select name="mediaType" label="search for">
+    <option value="tv">tv Show</option>
+    <option value="movie">movie</option>
+    </option>
+  </select>
+  called
   <input type="text" name="searchQuery" placeholder="Search">
+  <input type="hidden" name="query_type" value="search">
   <button type="submit">search</button>
 </form>
