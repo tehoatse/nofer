@@ -7,6 +7,8 @@ const express = require("express");
 const app = express();
 const ejs = require ("ejs");
 const axios = require("axios");
+const fs = require('fs');
+const _ = require('lodash');
 
 
 const apiKey = process.env.API_KEY;
@@ -19,13 +21,15 @@ let searchOptions;
 // object to hold useful values from the api call in getSearchResults()
 let pageValues;
 
+let objectForOutput;
+
 app.get("/", (req, res) => {
   res.render('home');
 });
 
 app.post("/", (req, res) => {
-  
   searchOptions = {
+    queryType: "search",
     enteredQueryString: req.body.searchQuery,
     page: 1,
     mediaType: req.body.mediaType,
@@ -39,9 +43,26 @@ app.post("/", (req, res) => {
     getResultsPage(searchOptions).then(
       searchResults => {
         pageValues = getPageValues(searchResults);
+        pageValues.mediaType = searchOptions.mediaType;
         res.redirect("/results");
     });
   }  
+});
+
+app.post('/writefile', (req, res) => {
+
+  let newFilesName = _.kebabCase(objectForOutput.title);
+  let newFilesContent = JSON.stringify(objectForOutput);
+
+  // convert to promises
+  fs.writeFile(`${__dirname}/testOutputs/${newFilesName}.txt`, newFilesContent, 
+    (err) => {
+      if (err) {
+        return console.error(err);
+      }
+      console.log("write done");
+  })
+  res.redirect("/");
 });
 
 app.get("/results", (req, res) => {
@@ -63,9 +84,23 @@ app.get("/error", (req,res) => {
   res.render('error');
 });
 
-app.get("media/:type/:id"), (req, res) => {
+app.get("/media/:type/:id", (req, res) => {
+  searchOptions = null;
+  searchOptions = {
+    queryType: 'media',
+    mediaType: req.params.type,
+    enteredQueryString: req.params.id  
+  }
 
-}
+  getResultsPage(searchOptions).then(
+    searchResults =>{
+      objectForOutput = searchResults;
+      res.render('displayMediaItem', {
+        result: searchResults
+      });
+    }
+  ) 
+})
 
 app.listen(3000, () => {
   console.log('server is running on port 3000')
@@ -73,19 +108,26 @@ app.listen(3000, () => {
 
 const getResultsPage = async (options) => {
 
-  let searchString = 'https://api.themoviedb.org/3/search/' + options.mediaType
-  searchString += '?api_key=' + apiKey
-  searchString += '&language=en-US&include_adult=false';
-  searchString += '&page=' + options.page;
-  searchString += '&query=';
-  searchString += options.enteredQueryString;
+  let queryString = 'https://api.themoviedb.org/3/';
 
-  let result = await axios.get(searchString);
+  if (options.queryType === 'search'){
+    queryString += `search/${options.mediaType}`
+    queryString += `?query=${options.enteredQueryString}`;
+    queryString += `&include_adult=false&page=${ options.page}`
+  }
+  
+  if(options.queryType === 'media'){
+    queryString += `${options.mediaType}/${options.enteredQueryString}?`;
+  }
+
+  queryString += '&language=en-US'
+  queryString += `&api_key=${apiKey}`
+
+  let result = await axios.get(queryString);
   return result.data;
 }
 
 const getPageValues = (data) => {
-  console.log(data);
   return {
     page: data.page,  // 'page' here means a page of data to be rendered
     totalPages: data.total_pages,
@@ -109,3 +151,25 @@ const getPageValues = (data) => {
   // vote_count: 396
 
   // { page: 10, results: [], total_pages: 1, total_results: 16 }
+
+// <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+// <movie>
+//     <title></title>
+//     <originaltitle></originaltitle>
+//     <userrating>0</userrating>
+//     <plot></plot>
+//     <mpaa></mpaa>
+//     <uniqueid type="" default="true"></uniqueid> <!-- add a value to type="" eg imdb, tmdb, home, sport, docu, see sample below -->
+//     <genre></genre>
+//     <tag></tag>
+//     <country></country>
+//     <credits></credits>
+//     <director></director>
+//     <premiered></premiered> <!-- yyyy-mm-dd -->
+//     <studio></studio>
+//     <actor>
+//         <name></name>
+//         <role></role>
+//         <order></order>
+//     </actor>
+// </movie>

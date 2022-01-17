@@ -4,8 +4,8 @@ total pages <%= totalPages %>
 <% results.forEach(result => {%>
   <div style="padding: 10px">
     <% if (result.title) { %>
-      <a href=
-    <%= result.title %> <br>
+      <a href="/media/movie/<%= result.id %>"><%= result.title %></a>
+    <br>
     <% } else { %>
     <%= result.name %> 
     <% } %>
