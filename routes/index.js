@@ -19,7 +19,9 @@ router.post('/', (req, res, next) => {
         res.redirect('/error');
     } else{
         query(searchOptions).then( searchResults => {
-            res.send(searchResults);
+            let result = res.locals.result;
+            result.setRaw(searchResults);
+            res.send(result.raw);
         });
     }
 });
