@@ -4,4 +4,13 @@ html
     title= title
     link(rel='stylesheet', href='/stylesheets/style.css')
   body
+    form(method='post', action='/')
+        span search for
+        select(name='mediaType' label='searchFor')
+            option(value='tv') tv show
+            option(value=movie) movie
+        span called
+        input(type='text', name='searchQuery', placeholder='search')
+        input(type='hidden',,name="query_type" value='search')
+        button(type='submit') search
     block content
